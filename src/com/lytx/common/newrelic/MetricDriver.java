@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Date;
 import java.text.SimpleDateFormat;
+import java.net.URLEncoder;
 import java.text.DateFormat;
 
 
@@ -28,6 +29,7 @@ public class MetricDriver {
 	MetricsParameters podBMetricsParameters;
 	HashMap<String, MetricResponse> metricResponseListPodA;
 	HashMap<String, MetricResponse> metricResponseListPodB;
+	InsightMetricResponse insightMetricResponse;
 	
 	public MetricDriver(MetricsParameters podAMetricsParameters, MetricsParameters podBMetricsParameters) {
 		this.podAMetricsParameters = podAMetricsParameters;
@@ -74,10 +76,11 @@ public class MetricDriver {
 		
 		JerseyWithSSL jerseyWithSSL = new JerseyWithSSL();
 		Client client = jerseyWithSSL.initClient();
+/*		
 		for (String metricName : metricDriver.getMetrics(client, podAMetricsParameters, WEB_TRANSACTION_TYPE)) {
 			System.out.println(metricName);
 		}
-/*		
+		
 		metricDriver.log("Start: " + podAMetricsParameters.getPodName());
 		metricDriver.setMetricResponseListPodA(metricDriver.getMetricData(client, metricDriver.getMetrics(client, metricDriver.getPodAMetricsParameters(), WEB_TRANSACTION_TYPE), metricDriver.getPodAMetricsParameters()));
 		metricDriver.log("End: " + podAMetricsParameters.getPodName());
@@ -87,6 +90,7 @@ public class MetricDriver {
 		HashMap<String,MetricSummary> metricList = metricDriver.getMetricSummary(metricDriver.metricResponseListPodA);
 		metricDriver.printMetricList(metricList);
 */		
+		metricDriver.runInsightQuery(client, podAMetricsParameters);
 		client.close();
 //		SSLContext ctx = SSLContext.getInstance("SSL");
 //		ctx.init(null,new TrustManager[]{new X509ExtendedTrustManager(null)},null);
@@ -138,6 +142,32 @@ public class MetricDriver {
 		response.close();
 		return metricCol;
 	}
+	private void runInsightQuery(Client client, MetricsParameters metricsParameters) {
+		
+		String nrql = "SELECT count(*) FROM Transaction where name = 'WebTransaction/WCF/DriveCam.HindSight.Services.Contracts.IDashboardService.GetSafetySummary' and duration > 30 SINCE '2016-08-31 00:00:00-0500' until '2016-09-01 00:00:00-0500' TIMESERIES";
+		String targetURL = "https://insights-api.newrelic.com/v1/accounts/828400/query?nrql=";
+//		WebTarget webTarget = client.target("https://api.newrelic.com/v2/applications/19855889/metrics.json");
+		System.out.println("Request before encoding: " + nrql);
+		try  {
+//		targetURL = URLEncoder.encode(targetURL,"UTF-8");
+//		targetURL = URLEncoder.encode(targetURL,"US-ASCII");
+		nrql = URLEncoder.encode(nrql,"ISO-8859-1");
+		} catch (Exception e) {
+			System.out.println("Could not encode");
+		} 
+		System.out.println("Request after encoding: " + nrql);
+		targetURL = targetURL + nrql;
+		WebTarget webTarget = client.target(targetURL);
+		Invocation.Builder invocationBuilder = webTarget.request(MediaType.APPLICATION_JSON);
+		invocationBuilder.header("X-QUERY-KEY", "QTCpvoztYPFi1cz7r946E6QNaQLOlEuP");
+		Response response = invocationBuilder.get();
+		System.out.println("Insight API Status: " + response.getStatus() + response.getStatusInfo());
+	//	String stringResult = response.readEntity(String.class);
+	//	System.out.println("JSON: " + stringResult);
+		insightMetricResponse = response.readEntity(new GenericType<InsightMetricResponse>(){});
+
+	}
+	
 	private HashMap<String,MetricSummary> getMetricSummary(HashMap<String,MetricResponse> list) {
 		HashMap<String,MetricSummary> differenceList = new HashMap<String,MetricSummary>();
 		float averageCallTime = 0;
