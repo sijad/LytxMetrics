@@ -90,7 +90,8 @@ public class MetricDriver {
 		HashMap<String,MetricSummary> metricList = metricDriver.getMetricSummary(metricDriver.metricResponseListPodA);
 		metricDriver.printMetricList(metricList);
 */		
-		metricDriver.runInsightQuery(client, podAMetricsParameters);
+		;
+		metricDriver.outputInsightMetrics(metricDriver.runInsightQuery(client, podAMetricsParameters));
 		client.close();
 //		SSLContext ctx = SSLContext.getInstance("SSL");
 //		ctx.init(null,new TrustManager[]{new X509ExtendedTrustManager(null)},null);
@@ -142,9 +143,9 @@ public class MetricDriver {
 		response.close();
 		return metricCol;
 	}
-	private void runInsightQuery(Client client, MetricsParameters metricsParameters) {
-		
-		String nrql = "SELECT count(*) FROM Transaction where name = 'WebTransaction/WCF/DriveCam.HindSight.Services.Contracts.IDashboardService.GetSafetySummary' and duration > 30 SINCE '2016-08-31 00:00:00-0500' until '2016-09-01 00:00:00-0500' TIMESERIES";
+	private InsightMetricResponse runInsightQuery(Client client, MetricsParameters metricsParameters) {
+		String name = "WebTransaction/WCF/DriveCam.HindSight.Services.Contracts.IDashboardService.GetSafetySummary";
+		String nrql = "SELECT count(*) FROM Transaction where name = '" + name + "' and duration > 30 SINCE '2016-08-31 00:00:00-0500' until '2016-09-01 00:00:00-0500' TIMESERIES";
 		String targetURL = "https://insights-api.newrelic.com/v1/accounts/828400/query?nrql=";
 //		WebTarget webTarget = client.target("https://api.newrelic.com/v2/applications/19855889/metrics.json");
 		System.out.println("Request before encoding: " + nrql);
@@ -165,7 +166,7 @@ public class MetricDriver {
 	//	String stringResult = response.readEntity(String.class);
 	//	System.out.println("JSON: " + stringResult);
 		insightMetricResponse = response.readEntity(new GenericType<InsightMetricResponse>(){});
-
+		return insightMetricResponse;
 	}
 	
 	private HashMap<String,MetricSummary> getMetricSummary(HashMap<String,MetricResponse> list) {
@@ -285,5 +286,9 @@ public class MetricDriver {
 		
 		return url.toString();
 		
+	}
+	private  void outputInsightMetrics(InsightMetricResponse response) {
+		response.getTotal().getInsightTotalResults().get(0).getCount();
+		System.out.println("Count: " + response.getTotal().getInsightTotalResults().get(0).getCount());
 	}
 }

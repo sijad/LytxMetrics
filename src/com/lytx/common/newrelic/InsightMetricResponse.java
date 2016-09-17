@@ -16,6 +16,8 @@ public class InsightMetricResponse {
 //	@JsonProperty("performanceStats")
 	@JsonIgnore
 	private InsightPerformanceStats performanceStats;
+	@JsonIgnore
+	private InsightError error;
 	
 	
 	public InsightMetricTotal getTotal() {
